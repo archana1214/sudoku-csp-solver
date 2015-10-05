@@ -64,6 +64,18 @@ class Problem(object):
         for variable in variables:
             self.addVariable(variable, domain)
 
+    def mapVarToConstraints(self):
+        """ Based on variables and constraint list make dictionary that
+        maps variables to their constraints
+        """
+        var_constr_dict = {}
+        for variable in self.variables:
+            var_constr_dict[variable] = []
+        for constraint, variables in self.constraints:
+            for variable in variables:
+                var_constr_dict[variable].append(constraint)
+        return var_constr_dict
+
     def getSolution(self):
         """
         Returns a solution for the CSP-problem
@@ -71,7 +83,11 @@ class Problem(object):
         @rtype: ?
 
         """
+        var_constr_dict = mapVarToConstraints()
+        # Use dict to choose least constraint variable        
+
         return True
+
 
 class Solver(object):
     pass
