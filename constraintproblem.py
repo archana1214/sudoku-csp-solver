@@ -24,7 +24,7 @@ class Problem(object):
         self.constraints = []
         self.variables = {}
 
-    def addConstraint(self, constraint, variables=None):
+    def addConstraint(self, constraintID, constrained_variables=None):
         """ Add a constraint over the variables to the problem
 
         @param constraint: an instance of one of the constraint classes,
@@ -34,14 +34,16 @@ class Problem(object):
                            works. Default is all variables.
         @type   variables: a list
         """
-
+        if constraintID == 1:
+            constraint = AllDifferentConstraint(self.variables, constrained_variables)
+            self.constraints.append(constraint)
         pass
 
     def addVariable(self, variable, domain):
         """ Add a single variable to the Problem with a given domain
 
         @param variable: variable that we add to our problem variables
-        @type variable:  a string (?)
+        @type variable:  some single value, for example a string, an int. In the sudoku case, it's a tuple.
         @param domain: Domain of the added variable
         @type domain:  instance of Domain, a list
 
@@ -76,15 +78,67 @@ class Solver(object):
 
 
 class BacktrackingSolver(Solver):
+    """ Solver that uses backtraching.
+
+    example
+     0 9 _ 7 _ _ 8 6 _
+     _ 3 1 _ _ 5 _ 2 _
+     8 _ 6 _ _ _ _ _ _
+     _ _ 7 _ 5 _ _ _ 6
+     _ _ _ 3 _ 7 _ _ _
+     5 _ _ _ 1 _ 7 _ _
+     _ _ _ _ _ _ 1 _ 9
+     _ 2 _ 6 _ _ _ 5 _
+     _ 5 4 _ _ 8 _ 7 _
+
+    Steps:
+    1. kies volgens een heuristiek een leeg vakje (bijvoorbeeld (1, 3))
+        2. kies volgens een heuristiek een assignment (bijvoorbeeld '2')
+        check de constraints waar de variabele in voorkomt. True? --> ga naar 1, False? --> verwijder de assignment (in het voorbeeld '2') uit het mogelijke domein en ga naar 2.
+        Als het domein leeg is, ga terug naar het voorgaande leeg vakje en ga naar stap 2.
+
+    Volgens mij is dit een OK naive implementatie?
+
+
+    """
+
     pass
 
 
-class Constraint(object):
-    pass
+# if we need multiple constraint types with similair functionality, we could inherit this class.
+# class Constraint(object):
+#     pass
 
 
-class AlldifferentConstraint(Constraint):
-    pass
+class AllDifferentConstraint(object):
+    """ init a constraint over variables. If these variables are not given, the constraint will be over all variables.
+    """
+
+    # '_' shows that it's a internal variable.
+    _constrained_variables = {}
+
+    def __init__(self, variables, constrained_variables=None):
+        """ init a constraint. 
+            
+            @param constrained_variables: variables over which the constraint is. the default is all variables
+            @type constrained_variables: a list. for example [11,12,13]
+        """
+
+        for var in constrained_variables:
+            self._constrained_variables[var] = variables[var]
+            # print "added " + var + ", " self.constrained_variables
+        for k, v in self._constrained_variables.iteritems():
+            print k, v
+
+    def solve(self):
+        """ gets a solution for a constraint.
+            
+        """
+        if self._constrained_variables is not None:
+            pass
+        else:
+            # over all variables
+            pass
 
 
 class Domain(list):
@@ -92,4 +146,3 @@ class Domain(list):
         Im not sure yet if we need a Domain class yet, but it could prove usefull in the future, for now, unused.
     """
     pass
-
