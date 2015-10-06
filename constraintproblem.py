@@ -83,8 +83,19 @@ class Problem(object):
         @rtype: ?
 
         """
-        var_constr_dict = mapVarToConstraints()
-        # Use dict to choose least constraint variable        
+        """ HEURISTIEK OPTIES
+        1. most constrained variable
+        2. smallest domain variable
+        3. mix of 1 and 2
+        MORE IDEAS? """
+
+        var_constr_dict = self.mapVarToConstraints()
+        # Use dict to choose most constrained variable 
+        
+        # Order variables by domain size
+        ordered_vars = [(len(self.variables[var]), var) for var in self.variables]
+        ordered_vars.sort()
+
 
         return True
 
