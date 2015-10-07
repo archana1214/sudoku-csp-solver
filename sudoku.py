@@ -79,10 +79,10 @@ def rewrite2array(solution):
             sudoku_array[i].append(0)
     for variable, assignment in solution.iteritems():
         if len(assignment) == 1:
-<<<<<<< HEAD
+            #<<<<<<< HEAD
             #print variable[0], variable[1]
-=======
->>>>>>> 1993cac983cbff69d5093dde8943ee82d1d6877d
+            #=======
+            #>>>>>>> 1993cac983cbff69d5093dde8943ee82d1d6877d
             sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
     return sudoku_array
 
