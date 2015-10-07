@@ -31,24 +31,47 @@ def read_sudokus(filename):
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
-def sudoku_constraints(problem):
-    """ Add constraints standard to all sudokus """
-
+def add_variables(problem):
     # Add variables with domain 1-9 for each variable
     for row in range(SUDOKU_SIZE[0]):
         for col in range(SUDOKU_SIZE[1]):
             problem.addVariable((row + 1, col + 1), range(1,10))
+    return problem
+
+def sudoku_constraints(problem):
+    """ Add constraints standard to all sudokus """
+
+
 
     # for i in range(1, 10) :
     #     problem.addVariables(range(i*10+1, i*10+10), range(1, 10))
 
     # Add constraints
     # constraint id: 1 = AllDifferentConstraint()
+    for i in range(1,10):
+        problem.addConstraint(1, [(i,1), (i,2), (i,3), (i,4), (i,5), (i,6), (i,7), (i,8), (i,9)])
+    for j in range(1,10):
+        problem.addConstraint(1, [(1,j), (2,j), (3,j), (4,j), (5,j), (6,j), (7,j), (8,j), (9,j)])
 
-    #problem.addConstraint(1, [(1,1), (1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8), (1,9)])
+    problem.addConstraint(1,[(1,1),(1,2),(1,3),(2,1),(2,2),(2,3),(3,1),(3,2),(3,3)])
+    problem.addConstraint(1,[(1,4),(1,5),(1,6),(2,4),(2,5),(2,6),(3,4),(3,5),(3,6)])
+    problem.addConstraint(1,[(1,7),(1,8),(1,9),(2,7),(2,8),(2,9),(3,7),(3,8),(3,9)])
 
-    #pprint(problem.variables)
+    problem.addConstraint(1,[(4,1),(4,2),(4,3),(5,1),(5,2),(5,3),(6,1),(6,2),(6,3)])
+    problem.addConstraint(1,[(4,4),(4,5),(4,6),(5,4),(5,5),(5,6),(6,4),(6,5),(6,6)])
+    problem.addConstraint(1,[(4,7),(4,8),(4,9),(5,7),(5,8),(5,9),(6,7),(6,8),(6,9)])
+
+    problem.addConstraint(1,[(7,1),(7,2),(7,3),(8,1),(8,2),(8,3),(9,1),(9,2),(9,3)])
+    problem.addConstraint(1,[(7,4),(7,5),(7,6),(8,4),(8,5),(8,6),(9,4),(9,5),(9,6)])
+    problem.addConstraint(1,[(7,7),(7,8),(7,9),(8,7),(8,8),(8,9),(9,7),(9,8),(9,9)])
     return problem
+
+def add_init_values(problem, sudoku):
+    # we have to somehow translate all the sudokuchars to constraints. i.e. if (1,1) = 1 at init, there needs to be a constraint over variable (1,1) so that its domain is only 1. 
+    for row in sudoku:
+        for number in row:
+            if number != 0:
+                
 
 def main(arg):
     
@@ -60,18 +83,17 @@ def main(arg):
     # Read sudokus from text file
     read_sudokus(arg[1])
 
-    problem = Problem()
-
-    # for a normal size sudoku: add all the variables with their domain.
-    #boxsize = (3,3)
-
-    # Add standard sudoku constraints
-    problem = sudoku_constraints(problem)
 
     for sudoku in SUDOKUS:
-        
-        # Get solution
-        problem.getSolution()
+        if sudoku == SUDOKUS[0]:
+            problem = Problem()
+
+            problem = add_variables(problem)
+            # Add standard sudoku constraints
+            problem = sudoku_constraints(problem)
+            problem = add_init_values(problem, sudoku)
+            # Get solution
+            problem.getSolution()
 
 
 if __name__ == '__main__':
@@ -81,4 +103,4 @@ if __name__ == '__main__':
         print "Example: python sudoku.py \"file.txt\" 9x9"
     else:
         main(sys.argv)
-        print SUDOKUS[0]
+        pprint(SUDOKUS[0])

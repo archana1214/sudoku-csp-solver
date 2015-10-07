@@ -5,7 +5,7 @@
 
 
 """
-
+from pprint import pprint
 
 class Problem(object):
     """ An instance of a CSP problem
@@ -69,11 +69,22 @@ class Problem(object):
         maps variables to their constraints
         """
         var_constr_dict = {}
+
         for variable in self.variables:
             var_constr_dict[variable] = []
-        for constraint, variables in self.constraints:
-            for variable in variables:
-                var_constr_dict[variable].append(constraint)
+
+        for constraint_obj in self.constraints:
+            for key in constraint_obj._constrained_variables:
+                # add the constraint object itself to the list of constraints for that variable
+                var_constr_dict[key].append(constraint_obj)
+
+        # for constraint_object in self.constraints:
+        #     constrained_variables = constraint_object._constrained_variables.keys()
+        #     # print "constrained_variables " + str(constrained_variables)
+        #     for constrained_variable in constrained_variables:
+        #         # print constrained_variable, variable
+        #         if constrained_variable == variable: 
+        #             var_constr_dict[variable].append(constraint_object)
         return var_constr_dict
 
     def getSolution(self):
@@ -88,7 +99,6 @@ class Problem(object):
         2. smallest domain variable
         3. mix of 1 and 2
         MORE IDEAS? """
-
         var_constr_dict = self.mapVarToConstraints()
         # Use dict to choose most constrained variable 
         
@@ -96,19 +106,29 @@ class Problem(object):
         ordered_vars = [(len(self.variables[var]), var) for var in self.variables]
         ordered_vars.sort()
 
-
+        pprint(var_constr_dict)
+        # for k,v in var_constr_dict.iteritems():
+        #     new_v = []
+        #     for i in v:
+        #         new_v.append(i._constrained_variables.keys())
+        #     print k, new_v
         return True
+
+
+class Variable(object):
+    _domain = []
+    _constraints = []
 
 
 class Solver(object):
     pass
 
 
-class BacktrackingSolver(Solver):
+class BacktrackingSolver(solver):
     """ Solver that uses backtraching.
 
     example
-     0 9 _ 7 _ _ 8 6 _
+     3 9 _ 7 _ _ 8 6 _
      _ 3 1 _ _ 5 _ 2 _
      8 _ 6 _ _ _ _ _ _
      _ _ 7 _ 5 _ _ _ 6
@@ -150,12 +170,15 @@ class AllDifferentConstraint(object):
             @param constrained_variables: variables over which the constraint is. the default is all variables
             @type constrained_variables: a list. for example [11,12,13]
         """
-
-        for var in constrained_variables:
-            self._constrained_variables[var] = variables[var]
-            # print "added " + var + ", " self.constrained_variables
-        for k, v in self._constrained_variables.iteritems():
-            print k, v
+        self._constrained_variables = {}
+        for var1 in constrained_variables:
+            # add var to _constrained_variables
+            self._constrained_variables[var1] = []
+            # now we add all OTHER variables from constrained_variables as value of the dict entry. so first entry would be: (1,1) : [(1,2),(1,3), (1,4)....., (1,9)]
+            for var2 in constrained_variables:
+                if var2 != var1:
+                    self._constrained_variables[var1].append(var2)
+        #pprint(self._constrained_variables)
 
     def solve(self):
         """ gets a solution for a constraint.
@@ -166,7 +189,6 @@ class AllDifferentConstraint(object):
         else:
             # over all variables
             pass
-
 
 class Domain(list):
     """
