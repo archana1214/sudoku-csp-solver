@@ -13,7 +13,7 @@ class Problem(object):
     TODO: fill in the different methods of the class. I've added them but have not yet implemented them because I wanted to work on the program structure first.
 
     """
-
+    var_constr_dict = {}
     def __init__(self, solver=None):
         """
         @param solver: Problem solver used to find solutions
@@ -98,21 +98,13 @@ class Problem(object):
         1. most constrained variable
         2. smallest domain variable
         3. mix of 1 and 2
-        MORE IDEAS? """
-        var_constr_dict = self.mapVarToConstraints()
-        # Use dict to choose most constrained variable 
-        
-        # Order variables by domain size
-        ordered_vars = [(len(self.variables[var]), var) for var in self.variables]
-        ordered_vars.sort()
+        MORE IDEAS? 
 
-        pprint(var_constr_dict)
-        # for k,v in var_constr_dict.iteritems():
-        #     new_v = []
-        #     for i in v:
-        #         new_v.append(i._constrained_variables.keys())
-        #     print k, new_v
-        return True
+        deze implementeren we later in een andere solver die we SuperSolver() of iets dergelijks noemen. BacktrackingSolver() is een naive implementatie.
+        """
+        self.var_constr_dict = self.mapVarToConstraints()
+        
+        return self.solver.getSolution(self)
 
 
 class Variable(object):
@@ -124,11 +116,11 @@ class Solver(object):
     pass
 
 
-class BacktrackingSolver(solver):
-    """ Solver that uses backtraching.
+class BacktrackingSolver(Solver):
+    """ simple solver that uses backtracking.
 
     example
-     3 9 _ 7 _ _ 8 6 _
+     _ 9 _ 7 _ _ 8 6 _
      _ 3 1 _ _ 5 _ 2 _
      8 _ 6 _ _ _ _ _ _
      _ _ 7 _ 5 _ _ _ 6
@@ -149,7 +141,60 @@ class BacktrackingSolver(solver):
 
     """
 
-    pass
+    def getSolution(self, problem):
+        """ we updaten eerst alle domains
+            daarna gaan we stapje voor stapje unassigned variables assignen. als dit fout gaat, kiezen we een andere variable.
+
+            maak een snapshot van het probleem
+            voor variabelen in het snapshot:
+                als variabele unassigned is:
+                    kies een assignment uit het domein
+                        check alle3 de constraints of ze voldoen.
+                        True --> volgende variabele
+                        False --> kies een andere assignment
+                    Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
+        """
+        problem = self.update_domains(problem)
+        
+
+    def update_domains(self, problem):
+        """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
+        problem.variables = {
+                                (1,1) : [3]
+                                (1,2) : [9]
+                                (1,3) : [1,2,3,4,5,6,7,8,9]
+                                  .
+                                  .
+                                  .
+                                (9,9) : [1,2,3,4,5,6,7,8,9]
+                            }
+        Voordat we ook maar iets gaan invullen (dus bvb (1,3) --> '2'), gaan we domain reduction doen. we willen dat bij (1,3) het domein niet [1:9] wordt, maar [2,5]. dit komt omdat, volgens alle constraints (Row, Column, en Box) dit de enige waarde zijn die dit hokje nog kan aannemen.
+
+        HOE DOEN WE DIT?
+        REPEAT UNTIL NO UPDATES ANY MORE
+        voor elke var (x,y):
+            voor elke constraint, horende bij (x,y) (bvb (1,3):
+                voor elke var in dit constraint horende bij (x,y):
+                    als (a,b) != (x,y):
+                        als _constrained_variables[(a,b)] heeft lengte 1 (is dus assigned):
+                            verwijder deze mogelijkheid voor (x,y) uit zijn domein.
+
+        """
+        update = True
+        while update:
+            update = False
+            for var1 in problem.variables:
+                for constraint in problem.var_constr_dict[var1]:
+                    for var2 in constraint._constrained_variables:
+                        if var2 != var1:
+                            if len(constraint._constrained_variables[var2]) == 1:
+                                assigned_val = _constrained_variables[var2][0]
+                                problem.variables[var1].remove(assigned_val)
+                                update = True
+                                print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
+                print " var %s , domain %s" % (var1, problem.variables[var1])
+        return problem
+
 
 
 # if we need multiple constraint types with similair functionality, we could inherit this class.
@@ -164,7 +209,7 @@ class AllDifferentConstraint(object):
     # '_' shows that it's a internal variable.
     _constrained_variables = {}
 
-    def __init__(self, variables, constrained_variables=None):
+    def __init__(self, variables, constrained_variables):
         """ init a constraint. 
             
             @param constrained_variables: variables over which the constraint is. the default is all variables
@@ -180,15 +225,22 @@ class AllDifferentConstraint(object):
                     self._constrained_variables[var1].append(var2)
         #pprint(self._constrained_variables)
 
-    def solve(self):
-        """ gets a solution for a constraint.
-            
+    def check(self, problem, updated_var):
+        """ check if constraint is still satisfied, after an update. 
+            TODO: this is going to be something like: given a snapshot! not yet implemnted though.
+
+            stel je assigned: (1,2) --> '1'. dan moet je alle constraints die iets zeggen over (1,2) checken, of de waarde 1 daar wel kan. 
+
+            voor alle constraints in var_constr_dict[(1,2)]:
+                voor alle andere variabelen die worden effect. door het constraint:
+                    als 
         """
-        if self._constrained_variables is not None:
-            pass
-        else:
-            # over all variables
-            pass
+        for var2 in self._constrained_variables[updated_var]:
+            if len(problem.variables[var2]) == 1:
+                if problem.variabels[var2] == problem.variabels[updated_var]:
+                    return False
+        return True
+
 
 class Domain(list):
     """
