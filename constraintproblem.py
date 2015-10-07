@@ -103,13 +103,13 @@ class Problem(object):
         deze implementeren we later in een andere solver die we SuperSolver() of iets dergelijks noemen. BacktrackingSolver() is een naive implementatie.
         """
         self.var_constr_dict = self.mapVarToConstraints()
-        
         return self.solver.getSolution(self)
 
 
 class Variable(object):
-    _domain = []
-    _constraints = []
+    domain = [] # domein van de variabele.
+    constraints = [] # lijst met constraints over deze variabele
+    value = (0,0) # tuple corresponding to the coordinates of the variable.
 
 
 class Solver(object):
@@ -129,6 +129,17 @@ class BacktrackingSolver(Solver):
      _ _ _ _ _ _ 1 _ 9
      _ 2 _ 6 _ _ _ 5 _
      _ 5 4 _ _ 8 _ 7 _
+
+
+     _ 9 4 _ _ _ 1 3 _ 
+     _ _ _ _ _ _ _ _ _ 
+     _ _ _ _ 7 6 _ _ 2
+     _ 8 _ _ 1 _ _ _ _ 
+     _ 3 2 _ _ _ _ _ _ 
+     _ _ _ 2 _ _ _ 6 _ 
+     _ _ _ _ 5 _ 4 _ _ 
+     _ _ _ _ _ 8 _ _ 7
+     _ _ 6 3 _ 4 _ _ 8
 
     Steps:
     1. kies volgens een heuristiek een leeg vakje (bijvoorbeeld (1, 3))
@@ -155,7 +166,7 @@ class BacktrackingSolver(Solver):
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
         problem = self.update_domains(problem)
-        
+
 
     def update_domains(self, problem):
         """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
@@ -175,23 +186,25 @@ class BacktrackingSolver(Solver):
         voor elke var (x,y):
             voor elke constraint, horende bij (x,y) (bvb (1,3):
                 voor elke var in dit constraint horende bij (x,y):
-                    als (a,b) != (x,y):
-                        als _constrained_variables[(a,b)] heeft lengte 1 (is dus assigned):
-                            verwijder deze mogelijkheid voor (x,y) uit zijn domein.
+                    als _constrained_variables[(a,b)] heeft lengte 1 (is dus assigned):
+                        verwijder deze mogelijkheid voor (x,y) uit zijn domein.
 
         """
         update = True
         while update:
             update = False
             for var1 in problem.variables:
-                for constraint in problem.var_constr_dict[var1]:
-                    for var2 in constraint._constrained_variables:
-                        if var2 != var1:
-                            if len(constraint._constrained_variables[var2]) == 1:
-                                assigned_val = _constrained_variables[var2][0]
-                                problem.variables[var1].remove(assigned_val)
-                                update = True
-                                print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
+                if len(problem.variables[var1]) > 1:
+                    for constraint in problem.var_constr_dict[var1]:
+                        for var2 in constraint._constrained_variables:
+                            # print "var2" +str(var2)
+                            if len(problem.variables[var2]) == 1:
+                                assigned_val = problem.variables[var2][0]
+                                #print assigned_val
+                                if assigned_val in problem.variables[var1]:
+                                    problem.variables[var1].remove(assigned_val)
+                                    update = True
+                                #print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
                 print " var %s , domain %s" % (var1, problem.variables[var1])
         return problem
 
@@ -229,11 +242,10 @@ class AllDifferentConstraint(object):
         """ check if constraint is still satisfied, after an update. 
             TODO: this is going to be something like: given a snapshot! not yet implemnted though.
 
-            stel je assigned: (1,2) --> '1'. dan moet je alle constraints die iets zeggen over (1,2) checken, of de waarde 1 daar wel kan. 
+            stel je assigned: (1,2) --> '1'. dan moet je alle constraints die iets zeggen over (1,2) checken, of de waarde 1 daar wel kan. (1,3) mag dus niet al '1' zijn.
 
-            voor alle constraints in var_constr_dict[(1,2)]:
-                voor alle andere variabelen die worden effect. door het constraint:
-                    als 
+            voor alle andere variabelen die worden ge-effect door het constraint:
+                    als deze variabelen assigned zijn, en hetzelfde zijn als de updated_var, kan de updated_var niet die waarde krijgen. 
         """
         for var2 in self._constrained_variables[updated_var]:
             if len(problem.variables[var2]) == 1:
