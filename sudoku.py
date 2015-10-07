@@ -31,11 +31,15 @@ def read_sudokus(filename):
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
-def add_variables(problem):
+def variable_domains(problem,sudoku):
     # Add variables with domain 1-9 for each variable
+    # we have to somehow translate all the sudokuchars to constraints. i.e. if (1,1) = 1 at init, there needs to be a constraint over variable (1,1) so that its domain is only 1. 
     for row in range(SUDOKU_SIZE[0]):
         for col in range(SUDOKU_SIZE[1]):
-            problem.addVariable((row + 1, col + 1), range(1,10))
+            if sudoku[row][col] == 0:
+                problem.addVariable((row + 1, col + 1), range(1,10))
+            else:
+                problem.addVariable((row + 1, col + 1), [sudoku[row][col]])
     return problem
 
 def sudoku_constraints(problem):
@@ -81,7 +85,7 @@ def main(arg):
         if sudoku == SUDOKUS[0]:
             problem = Problem()
 
-            problem = add_variables(problem)
+            problem = variable_domains(problem,sudoku)
             # Add standard sudoku constraints
             problem = sudoku_constraints(problem)
             # Get solution
