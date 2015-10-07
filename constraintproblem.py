@@ -8,6 +8,7 @@
 from pprint import pprint
 import time
 from collections import namedtuple
+from copy import deepcopy
 
 Statistics = namedtuple("Statistics", " runtime, backtracks, splits")
 
@@ -185,26 +186,25 @@ class BacktrackingSolver(Solver):
             problem = self.update_domains(problem)
         q = []
         q.append(problem)
-        self.backtrack(problem, q)
+        solution = self.backtrack(problem, q)
 
         return problem.variables
 
     def backtrack(self, problem, q):
-
+        # time.sleep(1)
         # find unassigned variables
-        unassigned = (v for v in problem.variables if len(problem.variables[v]) != 1 )
+        unassigned = (v for v in problem.variables if len(problem.variables[v]) > 1 )
         unassigned_vars = [ (len(problem.variables[v]), v) for v in unassigned ]
         if len(unassigned_vars) == 0:
-            print "JEEEEE"
+            return problem.variables
 
         else:       
             # order unassigned variables
             if self.mrv:
                 unassigned_vars.sort()
-            pprint(unassigned_vars)
+            # pprint(unassigned_vars)
 
             for unassigned in unassigned_vars:
-                print unassigned[1]
                 # Get domain of unassigned variable
                 domain = problem.variables[unassigned[1]]
                 for value in domain:
@@ -213,15 +213,18 @@ class BacktrackingSolver(Solver):
                     if self.check_assignment(problem, unassigned[1]):
                         problem = self.update_domains(problem)
                         q.append(deepcopy(problem))
-                        self.backtrack(problem, q)
+                        return self.backtrack(problem, q)
                     else: 
                         problem.variables[unassigned[1]] = domain    
 
     def check_assignment(self, problem, variable):
+        # print variable, problem.variables[variable]
         for constraint in problem.var_constr_dict[variable]:
-            for var in constraint._constrained_variables:
-                 if len(problem.variables[var]) == 1:
+            for var in constraint._constrained_variables[variable]:
+                if len(problem.variables[var]) == 1:
                     if problem.variables[variable] == problem.variables[var]:
+                        # print variable, var
+                        # print problem.variables[variable], problem.variables[var]
                         return False
         return True 
                         
@@ -256,14 +259,13 @@ class BacktrackingSolver(Solver):
                     for constraint in problem.var_constr_dict[var1]:
                         for var2 in constraint._constrained_variables:
                             # print "var2" +str(var2)
-                            if len(problem.variables[var2]) == 1:
+                            if len(problem.variables[var2]) == 1 and len(problem.variables[var1]) != 1:
                                 assigned_val = problem.variables[var2][0]
-                                #print assigned_val
                                 if assigned_val in problem.variables[var1]:
                                     problem.variables[var1].remove(assigned_val)
                                     update = True
                                 #print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
-                print " var %s , domain %s" % (var1, problem.variables[var1])
+                # print " var %s , domain %s" % (var1, problem.variables[var1])
         return problem
 
 

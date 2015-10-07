@@ -141,21 +141,20 @@ def main(arg):
     output = []
     output_stats = []
     for sudoku in SUDOKUS:
-        if sudoku == SUDOKUS[0]:
-            problem = Problem(forward_checking = True, minimal_remaining_values = True)
+        problem = Problem(forward_checking = False, minimal_remaining_values = True)
 
-            problem = variable_domains(problem,sudoku)
-            # Add standard sudoku constraints
-            problem = sudoku_constraints(problem)
-            # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
-            solution = problem.getSolution()
-            statistics = problem.getStatistics()
-            solution_array = rewrite2array(solution)
-            if not print_to_file:
-                pprint(solution_array)
-            else:
-                output.append(rewrite2output(solution_array))
-            output_stats.append(statistics)
+        problem = variable_domains(problem,sudoku)
+        # Add standard sudoku constraints
+        problem = sudoku_constraints(problem)
+        # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
+        solution = problem.getSolution()
+        statistics = problem.getStatistics()
+        solution_array = rewrite2array(solution)
+        if not print_to_file:
+            pprint(solution_array)
+        else:
+            output.append(rewrite2output(solution_array))
+        output_stats.append(statistics)
     
     print_statistics(output_stats)
 
