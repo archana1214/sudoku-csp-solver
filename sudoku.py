@@ -79,7 +79,7 @@ def rewrite_solution(solution):
             sudoku_array[i].append(0)
     for variable, assignment in solution.iteritems():
         if len(assignment) == 1:
-            print variable[0], variable[1]
+            #print variable[0], variable[1]
             sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
         
     return sudoku_array

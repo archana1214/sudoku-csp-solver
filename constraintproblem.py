@@ -170,8 +170,47 @@ class BacktrackingSolver(Solver):
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
         problem = self.update_domains(problem)
+        q = []
+        q.append(problem)
+        self.backtrack(problem, q)
+
         return problem.variables
 
+    def backtrack(self, problem, q):
+
+        # find unassigned variables
+        unassigned = (v for v in problem.variables if len(problem.variables[v]) != 1 )
+        unassigned_vars = [ (len(problem.variables[v]), v) for v in unassigned ]
+        if len(unassigned_vars) == 0:
+            print "JEEEEE"
+
+        else:       
+            # order unassigned variables
+            unassigned_vars.sort()
+            print unassigned_vars
+
+            for unassigned in unassigned_vars:
+                print unassigned[1]
+                # Get domain of unassigned variable
+                domain = problem.variables[unassigned[1]]
+                for value in domain:
+                    # Assign value to variable
+                    problem.variables[unassigned[1]] = [value]
+                    if self.check_assignment(problem, unassigned[1]):
+                        problem = self.update_domains(problem)
+                        q.append(deepcopy(problem))
+                        self.backtrack(problem, q)
+                    else: 
+                        problem.variables[unassigned[1]] = domain    
+
+    def check_assignment(self, problem, variable):
+        for constraint in problem.var_constr_dict[variable]:
+            for var in constraint._constrained_variables:
+                 if len(problem.variables[var]) == 1:
+                    if problem.variables[variable] == problem.variables[var]:
+                        return False
+        return True 
+                        
 
     def update_domains(self, problem):
         """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
