@@ -12,6 +12,7 @@ SUDOKU_SIZE = (9,9)
 
 def read_sudokus(filename):
     """import all sudoku's from file given by user"""
+
     try:
         with open(filename,'r') as f:
             # For each sudoku in the file
@@ -32,8 +33,9 @@ def read_sudokus(filename):
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
 
 def variable_domains(problem,sudoku):
-    # Add variables with domain 1-9 for each variable
-    # we have to somehow translate all the sudokuchars to constraints. i.e. if (1,1) = 1 at init, there needs to be a constraint over variable (1,1) so that its domain is only 1. 
+    """ Add variables with domain 1-9 for each variable
+    we have to somehow translate all the sudokuchars to constraints. i.e. if (1,1) = 1 at init, there needs to be a constraint over variable (1,1) so that its domain is only [1]. 
+    """
     for row in range(SUDOKU_SIZE[0]):
         for col in range(SUDOKU_SIZE[1]):
             if sudoku[row][col] == 0:
@@ -43,12 +45,7 @@ def variable_domains(problem,sudoku):
     return problem
 
 def sudoku_constraints(problem):
-    """ Add constraints standard to all sudokus """
-
-
-
-    # for i in range(1, 10) :
-    #     problem.addVariables(range(i*10+1, i*10+10), range(1, 10))
+    """ Add constraints standard for all sudokus """
 
     # Add constraints
     # constraint id: 1 = AllDifferentConstraint()
@@ -71,7 +68,10 @@ def sudoku_constraints(problem):
     return problem
 
 def rewrite2array(solution):
-    # solution is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
+    """ rewrites an solution of the form  {(1,1): [4], (1,2): [5] , .... (9,9) : [1]} to an 2dimensional array.
+        this is useful if we want to output it in a human readable form.
+        this is also used as intermediate step for rewriting the sudoku back to the original format.
+    """
     sudoku_array = []
     for i in range(SUDOKU_SIZE[0]):
         sudoku_array.append([])
@@ -87,20 +87,25 @@ def rewrite2array(solution):
     return sudoku_array
 
 def rewrite2output(solution_array):
+    """ rewrite a 2dimensional array to long string, just like the input.
+
+    """
+
     outputstring = ""
     for i in range(SUDOKU_SIZE[0]):
         for j in range(SUDOKU_SIZE[1]):
             outputstring += str(solution_array[i][j])
     return outputstring
 
-def output_data(outputstring, output):
-    with open(outputstring, 'w') as f:
+def output_data(outputfile, output):
+    """ outputs the solutions to the specified outputfile
+    """
+    with open(outputfile, 'w') as f:
         for sudoku in output:
                 f.write(sudoku)
                 f.write("\n")
 
 def main(arg):
-
     print_to_file = False
     outputfile = ""
 
