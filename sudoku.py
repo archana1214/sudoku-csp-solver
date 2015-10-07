@@ -106,20 +106,19 @@ def output_data(outputfile, output):
                 f.write("\n")
 
 def print_statistics(output_stats):
-    avg_runtime = 0
+    runtime = 0
     avg_backtracks = 0
     avg_splits = 0
     for problem_stat in output_stats:
-        avg_runtime += getattr(problem_stat,'runtime')        
+        runtime += getattr(problem_stat,'runtime')        
         avg_backtracks += getattr(problem_stat,'backtracks')        
         avg_splits += getattr(problem_stat,'splits')    
     n_Sudokus= len(output_stats) 
-    avg_runtime *= 1/n_Sudokus
     avg_backtracks *= 1/n_Sudokus
     avg_splits *= 1/n_Sudokus
-    print "avg_runtime: %s, avg_backtracks: %s, avg_splits: %s" %(avg_runtime, avg_backtracks, avg_splits)
+    print "runtime: %s, avg_backtracks: %s, avg_splits: %s" %(runtime, avg_backtracks, avg_splits)
 
-def main(arg):
+def main(arg, forward_checking = False, minimal_remaining_values=False):
     print_to_file = False
     outputfile = ""
     forward_checking = True
@@ -141,20 +140,21 @@ def main(arg):
     output = []
     output_stats = []
     for sudoku in SUDOKUS:
-        problem = Problem(forward_checking = False, minimal_remaining_values = True)
+        if sudoku == SUDOKUS[10]:
+            problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
 
-        problem = variable_domains(problem,sudoku)
-        # Add standard sudoku constraints
-        problem = sudoku_constraints(problem)
-        # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
-        solution = problem.getSolution()
-        statistics = problem.getStatistics()
-        solution_array = rewrite2array(solution)
-        if not print_to_file:
-            pprint(solution_array)
-        else:
-            output.append(rewrite2output(solution_array))
-        output_stats.append(statistics)
+            problem = variable_domains(problem,sudoku)
+            # Add standard sudoku constraints
+            problem = sudoku_constraints(problem)
+            # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
+            solution = problem.getSolution()
+            statistics = problem.getStatistics()
+            solution_array = rewrite2array(solution)
+            if not print_to_file:
+                pprint(solution_array)
+            else:
+                output.append(rewrite2output(solution_array))
+            output_stats.append(statistics)
     
     print_statistics(output_stats)
 
@@ -169,4 +169,7 @@ if __name__ == '__main__':
         print "if no outputfile is given, the solutions will be outputted on the screen"
         print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
-        main(sys.argv)
+        main(sys.argv,forward_checking = True, minimal_remaining_values=True)
+        main(sys.argv,forward_checking = True, minimal_remaining_values=False)
+        main(sys.argv,forward_checking = False, minimal_remaining_values=True)
+        main(sys.argv,forward_checking = False, minimal_remaining_values=False)

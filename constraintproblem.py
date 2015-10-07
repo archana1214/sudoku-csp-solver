@@ -61,8 +61,6 @@ class Problem(object):
         @type domain:  instance of Domain, a list
 
         TODO: add exception and error handling.
-        TODO: implement Domain() class? do we need this for just the sudoku
-              CSP instance?
         """
         self.variables[variable] = domain
 
@@ -90,14 +88,6 @@ class Problem(object):
             for key in constraint_obj._constrained_variables:
                 # add the constraint object itself to the list of constraints for that variable
                 var_constr_dict[key].append(constraint_obj)
-
-        # for constraint_object in self.constraints:
-        #     constrained_variables = constraint_object._constrained_variables.keys()
-        #     # print "constrained_variables " + str(constrained_variables)
-        #     for constrained_variable in constrained_variables:
-        #         # print constrained_variable, variable
-        #         if constrained_variable == variable: 
-        #             var_constr_dict[variable].append(constraint_object)
         return var_constr_dict
 
     def getSolution(self):
@@ -131,9 +121,9 @@ class Problem(object):
 
 
 class Variable(object):
-    domain = [] # domein van de variabele.
+    domain = [] # domein van de variabele. 
     constraints = [] # lijst met constraints over deze variabele
-    value = (0,0) # tuple corresponding to the coordinates of the variable.
+    value = (0,0) # tuple coresponding to the coordinates of the variable.
 
 
 class Solver(object):
@@ -184,14 +174,12 @@ class BacktrackingSolver(Solver):
         """
         if self.forward_checking:
             problem = self.update_domains(problem)
-        q = []
-        q.append(problem)
-        solution = self.backtrack(problem, q)
+        stack = []
+        stack.append(problem)
+        
+        return self.backtrack(problem, stack)
 
-        return problem.variables
-
-    def backtrack(self, problem, q):
-        # time.sleep(1)
+    def backtrack(self, problem, stack):
         # find unassigned variables
         unassigned = (v for v in problem.variables if len(problem.variables[v]) > 1 )
         unassigned_vars = [ (len(problem.variables[v]), v) for v in unassigned ]
@@ -211,11 +199,16 @@ class BacktrackingSolver(Solver):
                     # Assign value to variable
                     problem.variables[unassigned[1]] = [value]
                     if self.check_assignment(problem, unassigned[1]):
-                        problem = self.update_domains(problem)
-                        q.append(deepcopy(problem))
-                        return self.backtrack(problem, q)
+                        if self.forward_checking:
+                            problem = self.update_domains(problem)
+                        stack.append(deepcopy(problem))
+                        print len(stack)
+                        problem.splits += 1
+                        return self.backtrack(problem, stack)
                     else: 
-                        problem.variables[unassigned[1]] = domain    
+                        problem.variables[unassigned[1]] = domain
+                problem.backtracks += 1
+            return False
 
     def check_assignment(self, problem, variable):
         # print variable, problem.variables[variable]
