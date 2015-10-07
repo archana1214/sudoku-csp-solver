@@ -6,6 +6,10 @@
 
 """
 from pprint import pprint
+import time
+from collections import namedtuple
+
+Statistics = namedtuple("Statistics", " runtime, backtracks, splits")
 
 class Problem(object):
     """ An instance of a CSP problem
@@ -14,15 +18,23 @@ class Problem(object):
 
     """
     var_constr_dict = {}
-    def __init__(self, solver=None):
+    def __init__(self, minimal_remaining_values = False, forward_checking = False ):
         """
         @param solver: Problem solver used to find solutions
                        (default is BacktrackingSolver)
         @type solver:  instance of a Solver subclass
         """
-        self.solver = solver or BacktrackingSolver()
+        self.forward_checking = forward_checking
+        self.mrv = minimal_remaining_values
+
+        self.solver = BacktrackingSolver(forward_checking=self.forward_checking, minimal_remaining_values=self.mrv)
         self.constraints = []
         self.variables = {}
+
+        #statistical values
+        self.runtime = 0
+        self.splits = 0 
+        self.backtracks = 0
 
     def addConstraint(self, constraintID, constrained_variables=None):
         """ Add a constraint over the variables to the problem
@@ -102,12 +114,19 @@ class Problem(object):
 
         deze implementeren we later in een andere solver die we SuperSolver() of iets dergelijks noemen. BacktrackingSolver() is een naive implementatie.
         """
+        start = time.time()
         self.var_constr_dict = self.mapVarToConstraints()
+
+        solution = self.solver.getSolution(self)
+        self.runtime = time.time() - start
         # solution should be a variable assignment for all variables!
         # something like, {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
         # in our MAIN file, we rewrite this back to sudoku format
-        solution = self.solver.getSolution(self)
         return solution
+
+    def getStatistics(self):
+        stats = Statistics(runtime = self.runtime, backtracks = self.backtracks, splits = self.splits)
+        return stats
 
 
 class Variable(object):
@@ -119,21 +138,10 @@ class Variable(object):
 class Solver(object):
     pass
 
-
 class BacktrackingSolver(Solver):
     """ simple solver that uses backtracking.
 
     example
-     _ 9 _ 7 _ _ 8 6 _
-     _ 3 1 _ _ 5 _ 2 _
-     8 _ 6 _ _ _ _ _ _
-     _ _ 7 _ 5 _ _ _ 6
-     _ _ _ 3 _ 7 _ _ _
-     5 _ _ _ 1 _ 7 _ _
-     _ _ _ _ _ _ 1 _ 9
-     _ 2 _ 6 _ _ _ 5 _
-     _ 5 4 _ _ 8 _ 7 _
-
 
      _ 9 4 _ _ _ 1 3 _ 
      _ _ _ _ _ _ _ _ _ 
@@ -146,15 +154,19 @@ class BacktrackingSolver(Solver):
      _ _ 6 3 _ 4 _ _ 8
 
     Steps:
-    1. kies volgens een heuristiek een leeg vakje (bijvoorbeeld (1, 3))
-        2. kies volgens een heuristiek een assignment (bijvoorbeeld '2')
-        check de constraints waar de variabele in voorkomt. True? --> ga naar 1, False? --> verwijder de assignment (in het voorbeeld '2') uit het mogelijke domein en ga naar 2.
+    1. kies volgens een heuristiek een leeg vakje (bijvoorbeeld (1, 1))
+        2. kies volgens een heuristiek een assignment (bijvoorbeeld '1')
+        check de constraints waar de variabele in voorkomt. True? --> ga naar 1, False? --> verwijder de assignment (in het voorbeeld '1') uit het mogelijke domein en ga naar 2.
         Als het domein leeg is, ga terug naar het voorgaande leeg vakje en ga naar stap 2.
 
     Volgens mij is dit een OK naive implementatie?
 
-
     """
+
+    def __init__(self, forward_checking = False, minimal_remaining_values = False):
+        self.forward_checking = forward_checking
+        self.mrv = minimal_remaining_values 
+
 
     def getSolution(self, problem):
         """ we updaten eerst alle domains
@@ -169,7 +181,8 @@ class BacktrackingSolver(Solver):
                         False --> kies een andere assignment
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
-        problem = self.update_domains(problem)
+        if self.forward_checking:
+            problem = self.update_domains(problem)
         q = []
         q.append(problem)
         self.backtrack(problem, q)
@@ -186,8 +199,9 @@ class BacktrackingSolver(Solver):
 
         else:       
             # order unassigned variables
-            unassigned_vars.sort()
-            print unassigned_vars
+            if self.mrv:
+                unassigned_vars.sort()
+            pprint(unassigned_vars)
 
             for unassigned in unassigned_vars:
                 print unassigned[1]
@@ -253,12 +267,6 @@ class BacktrackingSolver(Solver):
         return problem
 
 
-
-# if we need multiple constraint types with similair functionality, we could inherit this class.
-# class Constraint(object):
-#     pass
-
-
 class AllDifferentConstraint(object):
     """ init a constraint over variables. If these variables are not given, the constraint will be over all variables.
     """
@@ -296,10 +304,3 @@ class AllDifferentConstraint(object):
                 if problem.variabels[var2] == problem.variabels[updated_var]:
                     return False
         return True
-
-
-class Domain(list):
-    """
-        Im not sure yet if we need a Domain class yet, but it could prove usefull in the future, for now, unused.
-    """
-    pass
