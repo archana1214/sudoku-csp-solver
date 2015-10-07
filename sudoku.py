@@ -70,6 +70,20 @@ def sudoku_constraints(problem):
     problem.addConstraint(1,[(7,7),(7,8),(7,9),(8,7),(8,8),(8,9),(9,7),(9,8),(9,9)])
     return problem
 
+def rewrite_solution(solution):
+    # solution is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
+    sudoku_array = []
+    for i in range(9):
+        sudoku_array.append([])
+        for j in range(9):
+            sudoku_array[i].append(0)
+    for variable, assignment in solution.iteritems():
+        if len(assignment) == 1:
+            print variable[0], variable[1]
+            sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
+        
+    return sudoku_array
+
 def main(arg):
     
     # User input size sudoku
@@ -80,7 +94,8 @@ def main(arg):
     # Read sudokus from text file
     read_sudokus(arg[1])
 
-
+    # output is OR outputted to the screen, or to the outputfile. This is a buffer where we save all solutions as a string of 81 characters for 1 sudoku.
+    output = []
     for sudoku in SUDOKUS:
         if sudoku == SUDOKUS[0]:
             problem = Problem()
@@ -88,15 +103,20 @@ def main(arg):
             problem = variable_domains(problem,sudoku)
             # Add standard sudoku constraints
             problem = sudoku_constraints(problem)
-            # Get solution
-            problem.getSolution()
+            # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
+            solution = problem.getSolution()
+            output.append(rewrite_solution(solution))
+
+    for sudoku in output:
+        pprint(sudoku)
+
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print "Please give a input filename, outputfilename and the size of the sudokus"
         print "If no size given, than default sudoku size is 9x9"
+        print "if no outputfile is given, the solutions will be outputted on the screen"
         print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
         main(sys.argv)
-        pprint(SUDOKUS[0])

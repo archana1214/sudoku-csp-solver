@@ -103,7 +103,11 @@ class Problem(object):
         deze implementeren we later in een andere solver die we SuperSolver() of iets dergelijks noemen. BacktrackingSolver() is een naive implementatie.
         """
         self.var_constr_dict = self.mapVarToConstraints()
-        return self.solver.getSolution(self)
+        # solution should be a variable assignment for all variables!
+        # something like, {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
+        # in our MAIN file, we rewrite this back to sudoku format
+        solution = self.solver.getSolution(self)
+        return solution
 
 
 class Variable(object):
@@ -166,6 +170,7 @@ class BacktrackingSolver(Solver):
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
         problem = self.update_domains(problem)
+        return problem.variables
 
 
     def update_domains(self, problem):
