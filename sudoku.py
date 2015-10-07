@@ -52,9 +52,9 @@ def sudoku_constraints(problem):
 
     # Add constraints
     # constraint id: 1 = AllDifferentConstraint()
-    for i in range(1,10):
+    for i in range(1,SUDOKU_SIZE[0]):        
         problem.addConstraint(1, [(i,1), (i,2), (i,3), (i,4), (i,5), (i,6), (i,7), (i,8), (i,9)])
-    for j in range(1,10):
+    for j in range(1,SUDOKU_SIZE[1]):
         problem.addConstraint(1, [(1,j), (2,j), (3,j), (4,j), (5,j), (6,j), (7,j), (8,j), (9,j)])
 
     problem.addConstraint(1,[(1,1),(1,2),(1,3),(2,1),(2,2),(2,3),(3,1),(3,2),(3,3)])
@@ -70,27 +70,49 @@ def sudoku_constraints(problem):
     problem.addConstraint(1,[(7,7),(7,8),(7,9),(8,7),(8,8),(8,9),(9,7),(9,8),(9,9)])
     return problem
 
-def rewrite_solution(solution):
+def rewrite2array(solution):
     # solution is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
     sudoku_array = []
-    for i in range(9):
+    for i in range(SUDOKU_SIZE[0]):
         sudoku_array.append([])
-        for j in range(9):
+        for j in range(SUDOKU_SIZE[1]):
             sudoku_array[i].append(0)
     for variable, assignment in solution.iteritems():
         if len(assignment) == 1:
+<<<<<<< HEAD
             #print variable[0], variable[1]
+=======
+>>>>>>> 1993cac983cbff69d5093dde8943ee82d1d6877d
             sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
-        
     return sudoku_array
 
+def rewrite2output(solution_array):
+    outputstring = ""
+    for i in range(SUDOKU_SIZE[0]):
+        for j in range(SUDOKU_SIZE[1]):
+            outputstring += str(solution_array[i][j])
+    return outputstring
+
+def output_data(outputstring, output):
+    with open(outputstring, 'w') as f:
+        for sudoku in output:
+                f.write(sudoku)
+                f.write("\n")
+
 def main(arg):
-    
+
+    print_to_file = False
+    outputfile = ""
+
     # User input size sudoku
     if len(arg) > 3:
         size = arg[3].split('x')
         SUDOKU_SIZE = (int(size[0]), int(size[1]))
-    
+
+    if len(arg) > 2 and arg[2][-4:] == ".txt":
+        print_to_file = True
+        outputfile = arg[2]
+
     # Read sudokus from text file
     read_sudokus(arg[1])
 
@@ -105,11 +127,14 @@ def main(arg):
             problem = sudoku_constraints(problem)
             # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
             solution = problem.getSolution()
-            output.append(rewrite_solution(solution))
-
-    for sudoku in output:
-        pprint(sudoku)
-
+            solution_array = rewrite2array(solution)
+            if not print_to_file:
+                pprint(solution_array)
+            else:
+                output.append(rewrite2output(solution_array))
+    #if an outputfile is specified
+    if outputfile:
+        output_data(outputfile, output)
 
 
 if __name__ == '__main__':
