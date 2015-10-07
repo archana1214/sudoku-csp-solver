@@ -66,18 +66,11 @@ def sudoku_constraints(problem):
     problem.addConstraint(1,[(7,7),(7,8),(7,9),(8,7),(8,8),(8,9),(9,7),(9,8),(9,9)])
     return problem
 
-def add_init_values(problem, sudoku):
-    # we have to somehow translate all the sudokuchars to constraints. i.e. if (1,1) = 1 at init, there needs to be a constraint over variable (1,1) so that its domain is only 1. 
-    for row in sudoku:
-        for number in row:
-            if number != 0:
-                
-
 def main(arg):
     
     # User input size sudoku
-    if len(arg) > 2:
-        size = arg[2].split('x')
+    if len(arg) > 3:
+        size = arg[3].split('x')
         SUDOKU_SIZE = (int(size[0]), int(size[1]))
     
     # Read sudokus from text file
@@ -91,16 +84,15 @@ def main(arg):
             problem = add_variables(problem)
             # Add standard sudoku constraints
             problem = sudoku_constraints(problem)
-            problem = add_init_values(problem, sudoku)
             # Get solution
             problem.getSolution()
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        print "Please give a file name and the size of the sudokus"
+        print "Please give a input filename, outputfilename and the size of the sudokus"
         print "If no size given, than default sudoku size is 9x9"
-        print "Example: python sudoku.py \"file.txt\" 9x9"
+        print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
         main(sys.argv)
         pprint(SUDOKUS[0])
