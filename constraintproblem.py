@@ -175,7 +175,7 @@ class BacktrackingSolver(Solver):
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
         #if self.forward_checking:
-        problem, assigned = self.update_domains(problem)
+        problem, assigned = self.update_domains(problem,[])
 
         return self.backtrack(problem)
 
@@ -195,8 +195,7 @@ class BacktrackingSolver(Solver):
             unassigned_vars.sort()
         unassigned = unassigned_vars[0][1]
 
-        copy_variables = deepcopy(problem.variables)
-        
+        copy_variables = deepcopy(problem.variables)      
         
         # Get domain of unassigned variable
         domain = problem.variables[unassigned]
@@ -204,8 +203,7 @@ class BacktrackingSolver(Solver):
             # Assign value to variable
             problem.variables[unassigned] = [value]
             # Update domains
-            #if self.forward_checking:
-            problem, assigned = self.better_update(problem, [unassigned])
+            problem, assigned = self.update_domains(problem, [unassigned])
             if self.check_assignment(problem, assigned):
                 #stack.append(deepcopy(new_state))
                 #print len(stack)
@@ -232,21 +230,7 @@ class BacktrackingSolver(Solver):
                             return False
         return True 
 
-    def better_update(self, problem, assigned):
-
-        for var1 in assigned:
-            for constraint in problem.var_constr_dict[var1]:
-                for var2 in constraint._constrained_variables:
-                    if len(problem.variables[var2]) != 1:
-                        assigned_value = problem.variables[var1][0]
-                        if assigned_value in problem.variables[var2]:
-                            problem.variables[var2].remove(assigned_value)
-                            if len(problem.variables[var2]) == 1:
-                                assigned.append(var2)
-        return problem, assigned
-
-
-    def update_domains(self, problem):
+    def update_domains(self, problem, assigned):
         """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
         problem.variables = {
                                 (1,1) : [3]
@@ -268,26 +252,24 @@ class BacktrackingSolver(Solver):
                         verwijder deze mogelijkheid voor (x,y) uit zijn domein.
 
         """
-        
-        
-        update = True
-        assigned = []
-        while update:
-            update = False
-            for var1 in problem.variables:
-                if len(problem.variables[var1]) > 1:
-                    for constraint in problem.var_constr_dict[var1]:
-                        for var2 in constraint._constrained_variables:
-                            # print "var2" +str(var2)
-                            if len(problem.variables[var2]) == 1 and len(problem.variables[var1]) != 1:
-                                assigned_val = problem.variables[var2][0]
-                                if assigned_val in problem.variables[var1]:
-                                    problem.variables[var1].remove(assigned_val)
-                                    if len(problem.variables[var1]) == 1:
-                                        assigned.append(var1)
-                                    update = True
-                                #print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
-                # print " var %s , domain %s" % (var1, problem.variables[var1])
+
+        # For first update round: find all assigned values
+        if len(assigned) == 0:
+            assigned = [ v for v in problem.variables if len(problem.variables[v]) == 1 ]
+        # Loop over assigned variables    
+        for var1 in assigned:
+            # Find constraints for assigned var
+            for constraint in problem.var_constr_dict[var1]:
+                # Find variables that assigned var is constrained by
+                for var2 in constraint._constrained_variables:
+                    # If variables that assigned var is constrained by
+                    # have its assigned value in domain, remove it
+                    if len(problem.variables[var2]) != 1:
+                        assigned_value = problem.variables[var1][0]
+                        if assigned_value in problem.variables[var2]:
+                            problem.variables[var2].remove(assigned_value)
+                            if len(problem.variables[var2]) == 1:
+                                assigned.append(var2)
         return problem, assigned
 
 
