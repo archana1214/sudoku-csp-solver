@@ -328,3 +328,5 @@ class AllDifferentConstraint(object):
                 if problem.variabels[var2] == problem.variabels[updated_var]:
                     return False
         return True
+
+
