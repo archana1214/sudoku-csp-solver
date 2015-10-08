@@ -82,10 +82,6 @@ def rewrite2array(solution):
             sudoku_array[i].append(0)
     for variable, assignment in solution.iteritems():
         if len(assignment) == 1:
-            #<<<<<<< HEAD
-            #print variable[0], variable[1]
-            #=======
-            #>>>>>>> 1993cac983cbff69d5093dde8943ee82d1d6877d
             sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
     return sudoku_array
 
@@ -123,18 +119,18 @@ def print_statistics(output_stats, forward_checking = False, minimal_remaining_v
         avg_backtracks = 0
         avg_splits = 0
         for problem_stat in output_stats:
-            runtime += getattr(problem_stat,'runtime')        
+            runtime += getattr(problem_stat,'runtime')      
             avg_backtracks += getattr(problem_stat,'backtracks')        
             avg_splits += getattr(problem_stat,'splits')    
-        n_Sudokus= len(output_stats) 
-        avg_backtracks *= 1/n_Sudokus
-        avg_splits *= 1/n_Sudokus
+        n_Sudokus= len(output_stats)
+        avg_backtracks = avg_backtracks/n_Sudokus
+        avg_splits = avg_splits/n_Sudokus
         spamwriter.writerow(['Heuristics:', 'forward_checking = ' + str(forward_checking), 'minimal_remaining_values = ' + str(minimal_remaining_values)])
 
         spamwriter.writerow(['--------------------------'])
-        spamwriter.writerow(['total runtime', runtime])
+        spamwriter.writerow(['total runtime', round(runtime,3)])
         spamwriter.writerow(['average backtracks:', avg_backtracks])
-        spamwriter.writerow(['average splits', avg_splits])
+        spamwriter.writerow(['average splits:', avg_splits])
     os.chdir("../")
 
 def main(arg, forward_checking = False, minimal_remaining_values=False):
@@ -158,7 +154,7 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
     # output is OR outputted to the screen, or to the outputfile. This is a buffer where we save all solutions as a string of 81 characters for 1 sudoku.
     output = []
     output_stats = []
-    for sudoku in SUDOKUS[0:2]:
+    for sudoku in SUDOKUS[0:100]:
         problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
 
         problem = variable_domains(problem,sudoku)
@@ -185,7 +181,7 @@ if __name__ == '__main__':
         print "if no outputfile is given, the solutions will be outputted on the screen"
         print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
-        main(sys.argv,forward_checking = True, minimal_remaining_values=True)
-        main(sys.argv,forward_checking = True, minimal_remaining_values=False)
-        main(sys.argv,forward_checking = False, minimal_remaining_values=True)
-        main(sys.argv,forward_checking = False, minimal_remaining_values=False)
+        main(sys.argv,forward_checking=True, minimal_remaining_values=True)
+        # main(sys.argv,forward_checking=True, minimal_remaining_values=False)
+        # main(sys.argv,forward_checking=False, minimal_remaining_values=True)
+        # main(sys.argv,forward_checking=False, minimal_remaining_values=False)

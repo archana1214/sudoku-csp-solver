@@ -183,7 +183,6 @@ class BacktrackingSolver(Solver):
         unassigned_vars = [ (len(problem.variables[v]), v) for v in u ]
 
         if len(unassigned_vars) == 0:
-            print problem.backtracks
             return problem.variables
 
         # order unassigned variables
