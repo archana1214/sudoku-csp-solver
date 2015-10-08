@@ -18,7 +18,7 @@ class Problem(object):
     TODO: fill in the different methods of the class. I've added them but have not yet implemented them because I wanted to work on the program structure first.
 
     """
-    var_constr_dict = {}
+    #var_constr_dict = {}
     def __init__(self, minimal_remaining_values = False, forward_checking = False ):
         """
         @param solver: Problem solver used to find solutions
@@ -31,6 +31,7 @@ class Problem(object):
         self.solver = BacktrackingSolver(forward_checking=self.forward_checking, minimal_remaining_values=self.mrv)
         self.constraints = []
         self.variables = {}
+        self.var_constr_dict = {}
 
         #statistical values
         self.runtime = 0
@@ -79,16 +80,16 @@ class Problem(object):
         """ Based on variables and constraint list make dictionary that
         maps variables to their constraints
         """
-        var_constr_dict = {}
+        #var_constr_dict = {}
 
         for variable in self.variables:
-            var_constr_dict[variable] = []
+            self.var_constr_dict[variable] = []
 
         for constraint_obj in self.constraints:
             for key in constraint_obj._constrained_variables:
                 # add the constraint object itself to the list of constraints for that variable
-                var_constr_dict[key].append(constraint_obj)
-        return var_constr_dict
+                self.var_constr_dict[key].append(constraint_obj)
+        return self.var_constr_dict
 
     def getSolution(self):
         """
@@ -154,9 +155,10 @@ class BacktrackingSolver(Solver):
 
     """
 
-    def __init__(self, forward_checking = False, minimal_remaining_values = False):
+    def __init__(self, forward_checking = True, minimal_remaining_values = True):
         self.forward_checking = forward_checking
         self.mrv = minimal_remaining_values 
+        self.backtracks = 0
 
 
     def getSolution(self, problem):
@@ -173,52 +175,59 @@ class BacktrackingSolver(Solver):
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
         if self.forward_checking:
-            problem = self.update_domains(problem)
-        stack = []
-        stack.append(problem)
-        
-        return self.backtrack(problem, stack)
+            problem, assigned = self.update_domains(problem)
 
-    def backtrack(self, problem, stack):
+        return self.backtrack(problem)
+
+    def backtrack(self, problem):
+
         # find unassigned variables
-        unassigned = (v for v in problem.variables if len(problem.variables[v]) > 1 )
-        unassigned_vars = [ (len(problem.variables[v]), v) for v in unassigned ]
+        u = (v for v in problem.variables if len(problem.variables[v]) > 1 )
+        unassigned_vars = [ (len(problem.variables[v]), v) for v in u ]
+
         if len(unassigned_vars) == 0:
+            print "Backtrackings: "
+            print self.backtracks
             return problem.variables
 
-        else:       
-            # order unassigned variables
-            if self.mrv:
-                unassigned_vars.sort()
-            # pprint(unassigned_vars)
+        # order unassigned variables
+        if self.mrv:
+            unassigned_vars.sort()
+        unassigned = unassigned_vars[0][1]
 
-            for unassigned in unassigned_vars:
-                # Get domain of unassigned variable
-                domain = problem.variables[unassigned[1]]
-                for value in domain:
-                    # Assign value to variable
-                    problem.variables[unassigned[1]] = [value]
-                    if self.check_assignment(problem, unassigned[1]):
-                        if self.forward_checking:
-                            problem = self.update_domains(problem)
-                        stack.append(deepcopy(problem))
-                        print len(stack)
-                        problem.splits += 1
-                        return self.backtrack(problem, stack)
-                    else: 
-                        problem.variables[unassigned[1]] = domain
-                problem.backtracks += 1
-            return False
+        copy_state = deepcopy(problem)
+        
+        # Get domain of unassigned variable
+        domain = problem.variables[unassigned]
+        for value in domain:
+            # Assign value to variable
+            problem.variables[unassigned] = [value]
+            # Update domains
+            #if self.forward_checking:
+            problem, assigned = self.update_domains(problem)
+            assigned.append(unassigned)
+            if self.check_assignment(problem, assigned):
+                #stack.append(deepcopy(new_state))
+                #print len(stack)
+                problem.splits += 1
+                result = self.backtrack(problem)
+                if isinstance(result, dict):
+                    return result
+            problem = deepcopy(copy_state)
+        problem = deepcopy(copy_state)
+        self.backtracks += 1
+        return False
 
-    def check_assignment(self, problem, variable):
-        # print variable, problem.variables[variable]
-        for constraint in problem.var_constr_dict[variable]:
-            for var in constraint._constrained_variables[variable]:
-                if len(problem.variables[var]) == 1:
-                    if problem.variables[variable] == problem.variables[var]:
-                        # print variable, var
-                        # print problem.variables[variable], problem.variables[var]
-                        return False
+    def check_assignment(self, problem, assigned):
+        for variable in assigned:
+            for constraint in problem.var_constr_dict[variable]:
+                for var in constraint._constrained_variables[variable]:
+                    if len(problem.variables[var]) == 1:
+                        #print problem.variables[variable][0], problem.variables[var][0]
+                        if problem.variables[variable][0] == problem.variables[var][0]:
+                            #print variable, var
+                            #print problem.variables[variable], problem.variables[var]
+                            return False
         return True 
                         
 
@@ -244,7 +253,10 @@ class BacktrackingSolver(Solver):
                         verwijder deze mogelijkheid voor (x,y) uit zijn domein.
 
         """
+        
+        
         update = True
+        assigned = []
         while update:
             update = False
             for var1 in problem.variables:
@@ -256,10 +268,12 @@ class BacktrackingSolver(Solver):
                                 assigned_val = problem.variables[var2][0]
                                 if assigned_val in problem.variables[var1]:
                                     problem.variables[var1].remove(assigned_val)
+                                    if len(problem.variables[var1]) == 1:
+                                        assigned.append(var1)
                                     update = True
                                 #print " i have removed " + str(assigned_val) + " from " + str(problem.variables[var1])
                 # print " var %s , domain %s" % (var1, problem.variables[var1])
-        return problem
+        return problem, assigned
 
 
 class AllDifferentConstraint(object):

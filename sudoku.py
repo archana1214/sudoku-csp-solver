@@ -140,7 +140,7 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
     output = []
     output_stats = []
     for sudoku in SUDOKUS:
-        if sudoku == SUDOKUS[10]:
+        if sudoku == SUDOKUS[0]:
             problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
 
             problem = variable_domains(problem,sudoku)
@@ -155,9 +155,9 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
             else:
                 output.append(rewrite2output(solution_array))
             output_stats.append(statistics)
-    
+    # EXTRA PRINT        
+    pprint(solution_array)
     print_statistics(output_stats)
-
     #if an outputfile is specified
     if outputfile:
         output_data(outputfile, output)
