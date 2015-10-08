@@ -174,8 +174,8 @@ class BacktrackingSolver(Solver):
                         False --> kies een andere assignment
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
-        if self.forward_checking:
-            problem, assigned = self.update_domains(problem)
+        #if self.forward_checking:
+        problem, assigned = self.update_domains(problem)
 
         return self.backtrack(problem)
 
@@ -195,7 +195,8 @@ class BacktrackingSolver(Solver):
             unassigned_vars.sort()
         unassigned = unassigned_vars[0][1]
 
-        copy_state = deepcopy(problem)
+        copy_variables = deepcopy(problem.variables)
+        
         
         # Get domain of unassigned variable
         domain = problem.variables[unassigned]
@@ -204,8 +205,7 @@ class BacktrackingSolver(Solver):
             problem.variables[unassigned] = [value]
             # Update domains
             #if self.forward_checking:
-            problem, assigned = self.update_domains(problem)
-            assigned.append(unassigned)
+            problem, assigned = self.better_update(problem, [unassigned])
             if self.check_assignment(problem, assigned):
                 #stack.append(deepcopy(new_state))
                 #print len(stack)
@@ -213,8 +213,10 @@ class BacktrackingSolver(Solver):
                 result = self.backtrack(problem)
                 if isinstance(result, dict):
                     return result
-            problem = deepcopy(copy_state)
-        problem = deepcopy(copy_state)
+            problem.variables = deepcopy(copy_variables)
+        st = time.time()
+        problem.variables = deepcopy(copy_variables)
+        rt = time.time() - st
         self.backtracks += 1
         return False
 
@@ -229,7 +231,20 @@ class BacktrackingSolver(Solver):
                             #print problem.variables[variable], problem.variables[var]
                             return False
         return True 
-                        
+
+    def better_update(self, problem, assigned):
+
+        for var1 in assigned:
+            for constraint in problem.var_constr_dict[var1]:
+                for var2 in constraint._constrained_variables:
+                    if len(problem.variables[var2]) != 1:
+                        assigned_value = problem.variables[var1][0]
+                        if assigned_value in problem.variables[var2]:
+                            problem.variables[var2].remove(assigned_value)
+                            if len(problem.variables[var2]) == 1:
+                                assigned.append(var2)
+        return problem, assigned
+
 
     def update_domains(self, problem):
         """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
