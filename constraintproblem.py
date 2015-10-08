@@ -106,9 +106,8 @@ class Problem(object):
 
         deze implementeren we later in een andere solver die we SuperSolver() of iets dergelijks noemen. BacktrackingSolver() is een naive implementatie.
         """
-        start = time.time()
         self.var_constr_dict = self.mapVarToConstraints()
-
+        start = time.time()
         solution = self.solver.getSolution(self)
         self.runtime = time.time() - start
         # solution should be a variable assignment for all variables!
@@ -176,8 +175,8 @@ class BacktrackingSolver(Solver):
         """
         if self.forward_checking:
             problem, assigned = self.update_domains(problem)
-
-        return self.backtrack(problem)
+        solution = self.backtrack(problem)
+        return solution.variables, solution.getStatistics()
 
     def backtrack(self, problem):
 
@@ -188,7 +187,7 @@ class BacktrackingSolver(Solver):
         if len(unassigned_vars) == 0:
             print "Backtrackings: "
             print self.backtracks
-            return problem.variables
+            return problem
 
         # order unassigned variables
         if self.mrv:
@@ -203,19 +202,17 @@ class BacktrackingSolver(Solver):
             # Assign value to variable
             problem.variables[unassigned] = [value]
             # Update domains
-            #if self.forward_checking:
-            problem, assigned = self.update_domains(problem)
+            if self.forward_checking:
+                problem, assigned = self.update_domains(problem)
             assigned.append(unassigned)
             if self.check_assignment(problem, assigned):
-                #stack.append(deepcopy(new_state))
-                #print len(stack)
                 problem.splits += 1
                 result = self.backtrack(problem)
-                if isinstance(result, dict):
-                    return result
+                if isinstance(result, Problem):
+                     return result
             problem = deepcopy(copy_state)
-        problem = deepcopy(copy_state)
-        self.backtracks += 1
+        #problem = deepcopy(copy_state)
+        problem.backtracks += 1
         return False
 
     def check_assignment(self, problem, assigned):
@@ -229,7 +226,6 @@ class BacktrackingSolver(Solver):
                             #print problem.variables[variable], problem.variables[var]
                             return False
         return True 
-                        
 
     def update_domains(self, problem):
         """ we krijgen hier een probleem, waar variabelen al een assignment kunnen hebben. voor bovenstaande voorbeeldsudoku zou het volgende dus gelden:
