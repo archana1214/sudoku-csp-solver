@@ -103,8 +103,7 @@ def output_data(outputfile, output):
                 f.write(sudoku)
                 f.write("\n")
 
-
-def print_statistics(output_stats, forward_checking = False, minimal_remaining_values = False):
+def print_statistics(output_stats, minimal_remaining_values = False, degree_heuristic = False):
     os.chdir("statistics/")
 
     dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -125,7 +124,7 @@ def print_statistics(output_stats, forward_checking = False, minimal_remaining_v
         n_Sudokus= len(output_stats)
         avg_backtracks = avg_backtracks/n_Sudokus
         avg_splits = avg_splits/n_Sudokus
-        spamwriter.writerow(['Heuristics:', 'forward_checking = ' + str(forward_checking), 'minimal_remaining_values = ' + str(minimal_remaining_values)])
+        spamwriter.writerow(['Heuristics:', 'minimal_remaining_values = ' + str(minimal_remaining_values), 'degree_heuristic = ' + str(degree_heuristic) ])
 
         spamwriter.writerow(['--------------------------'])
         spamwriter.writerow(['total runtime', round(runtime,3)])
@@ -133,10 +132,10 @@ def print_statistics(output_stats, forward_checking = False, minimal_remaining_v
         spamwriter.writerow(['average splits:', avg_splits])
     os.chdir("../")
 
-def main(arg, forward_checking = False, minimal_remaining_values=False):
+def main(arg, minimal_remaining_values=False, degree_heuristic = False):
     print_to_file = False
     outputfile = ""
-    forward_checking = True
+    degree_heuristic = True
     minimal_remaining_values = True
 
     # User input size sudoku
@@ -157,7 +156,7 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
 
     #for sudoku in SUDOKUS[0:1]:
     for sudoku in SUDOKUS[0:100]:
-        problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
+        problem = Problem(minimal_remaining_values = minimal_remaining_values, degree_heuristic = degree_heuristic)
 
         problem = variable_domains(problem,sudoku)
         # Add standard sudoku constraints
@@ -174,7 +173,7 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
     #if an outputfile is specified
     if outputfile:
         output_data(outputfile, output)
-    print_statistics(output_stats, forward_checking, minimal_remaining_values)
+    print_statistics(output_stats, minimal_remaining_values, degree_heuristic)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -183,7 +182,7 @@ if __name__ == '__main__':
         print "if no outputfile is given, the solutions will be outputted on the screen"
         print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
-        main(sys.argv,forward_checking = True, minimal_remaining_values=True)
-        main(sys.argv,forward_checking = True, minimal_remaining_values=False)
+        main(sys.argv, minimal_remaining_values=True, degree_heuristic = False)
+        main(sys.argv, minimal_remaining_values=False, degree_heuristic = True)
 
 

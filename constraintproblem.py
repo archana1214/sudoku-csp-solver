@@ -18,16 +18,16 @@ class Problem(object):
     TODO: fill in the different methods of the class. I've added them but have not yet implemented them because I wanted to work on the program structure first.
 
     """
-    def __init__(self, minimal_remaining_values = False, forward_checking = False ):
+    def __init__(self, minimal_remaining_values = False, degree_heuristic = False):
         """
         @param solver: Problem solver used to find solutions
                        (default is BacktrackingSolver)
         @type solver:  instance of a Solver subclass
         """
-        self.forward_checking = forward_checking
+        self.dh = degree_heuristic
         self.mrv = minimal_remaining_values
 
-        self.solver = BacktrackingSolver(forward_checking=self.forward_checking, minimal_remaining_values=self.mrv)
+        self.solver = BacktrackingSolver(minimal_remaining_values=self.mrv, degree_heuristic=self.dh)
         self.constraints = []
         self.variables = {}
         self.var_constr_dict = {}
@@ -152,8 +152,8 @@ class BacktrackingSolver(Solver):
 
     """
 
-    def __init__(self, forward_checking = True, minimal_remaining_values = True):
-        self.forward_checking = forward_checking
+    def __init__(self, minimal_remaining_values = True, degree_heuristic = True):
+        self.dh = degree_heuristic
         self.mrv = minimal_remaining_values 
         self.backtracks = 0
 
@@ -171,25 +171,33 @@ class BacktrackingSolver(Solver):
                         False --> kies een andere assignment
                     Geen assignments meer over? ga terug naar het vorige keuzemoment (snapshot)
         """
-        #if self.forward_checking:
         problem, assigned = self.update_domains(problem,[])
 
         return self.backtrack(problem)
 
     def backtrack(self, problem):
 
-        # find unassigned variables
-        u = (v for v in problem.variables if len(problem.variables[v]) > 1 )
-        unassigned_vars = [ (len(problem.variables[v]), v) for v in u ]
+        # Find unassigned variables
+        #u = (v,d for v,d in problem.variables.iteritems() if len(problem.variables[v]) > 1 )
+        #unassigned_vars = [ (len(problem.variables[v]), v, d) for v,d in u ]
+        # Find unassigned variables
+        u = [var for var,d in problem.variables.iteritems() if len(problem.variables[var]) > 1 ]
+        #unassigned_vars = [ var for var in u ]
 
-        if len(unassigned_vars) == 0:
+
+        # If all values are assigned, we have a solution
+        if len(u) == 0:
             return problem.variables
 
-        # order unassigned variables
-        if self.mrv:
-            unassigned_vars.sort()
-        unassigned = unassigned_vars[0][1]
+        # Decide which unassigned variable to assign a value first
+        if self.mrv and not self.dh:
+            unassigned = self.sort_mrv(u, problem.variables)
+        elif self.dh and not self.mrv:
+            unassigned = self.sort_dh(u, problem.var_constr_dict)
+        elif self.dh and self.mrv:
+            unassigned = self.sort_both(u, problem.variables, problem.var_constr_dict)
 
+        # Keep copy for backtracking
         copy_variables = deepcopy(problem.variables)      
         
         # Get domain of unassigned variable
@@ -200,8 +208,6 @@ class BacktrackingSolver(Solver):
             # Update domains
             problem, assigned = self.update_domains(problem, [unassigned])
             if self.check_assignment(problem, assigned):
-                #stack.append(deepcopy(new_state))
-                #print len(stack)
                 problem.splits += 1
                 result = self.backtrack(problem)
                 if isinstance(result, dict):
@@ -254,9 +260,10 @@ class BacktrackingSolver(Solver):
         # Loop over assigned variables    
         for var1 in assigned:
             # Find constraints for assigned var
+            # TODO: dubbelop var_const_dict[var1] en _constrained_variables[var1]
             for constraint in problem.var_constr_dict[var1]:
                 # Find variables that assigned var is constrained by
-                for var2 in constraint._constrained_variables:
+                for var2 in constraint._constrained_variables[var1]:
                     # If variables that assigned var is constrained by
                     # have its assigned value in domain, remove it
                     if len(problem.variables[var2]) != 1:
@@ -266,6 +273,33 @@ class BacktrackingSolver(Solver):
                             if len(problem.variables[var2]) == 1:
                                 assigned.append(var2)
         return problem, assigned
+
+    """ HEURISTICS FOR VARIABLE ORDENING """
+
+    def sort_mrv(self, unassigned, variables):
+        domain_order = [(len(variables[v]), v) for v in unassigned]
+        domain_order.sort()
+        return domain_order[0][1]
+  
+    def sort_dh(self, unassigned, var_constr_dict):
+        count_cvars = []
+        for var in unassigned:
+            c_list = []
+            for constraint in var_constr_dict[var]:
+                for c_var in constraint._constrained_variables[var]:
+                    if (c_var in unassigned) and (c_var not in c_list):
+                        c_list.append(c_var)
+            count_cvars.append((len(c_list), var))
+        count_cvars.sort()     
+        return count_cvars[0][1]
+
+    def sort_both(self, unassigned, variables, var_constr_dict):
+        mrv = []
+        domain_size = 2
+        while len(mrv) == 0:
+            d = (v for v in unassigned if len(variables[v]) == domain_size)
+            mrv = [(len(variables[v]), v) for v in d]
+        return self.sort_dh(unassigned, var_constr_dict)
 
 
 class AllDifferentConstraint(object):
