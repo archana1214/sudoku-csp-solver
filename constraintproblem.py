@@ -18,7 +18,6 @@ class Problem(object):
     TODO: fill in the different methods of the class. I've added them but have not yet implemented them because I wanted to work on the program structure first.
 
     """
-    #var_constr_dict = {}
     def __init__(self, minimal_remaining_values = False, forward_checking = False ):
         """
         @param solver: Problem solver used to find solutions
@@ -111,10 +110,8 @@ class Problem(object):
 
         solution = self.solver.getSolution(self)
         self.runtime = time.time() - start
-        # solution should be a variable assignment for all variables!
-        # something like, {(1,1): [4], (1,2): [5] , .... (9,9) : [1]}
-        # in our MAIN file, we rewrite this back to sudoku format
-        return solution
+        # solution is a instance of problem, where variables is all done!
+        return solution, self.getStatistics()
 
     def getStatistics(self):
         stats = Statistics(runtime = self.runtime, backtracks = self.backtracks, splits = self.splits)
@@ -176,8 +173,8 @@ class BacktrackingSolver(Solver):
         """
         #if self.forward_checking:
         problem, assigned = self.update_domains(problem)
-
-        return self.backtrack(problem)
+        solution = self.backtrack(problem)
+        return solution
 
     def backtrack(self, problem):
 
@@ -186,8 +183,7 @@ class BacktrackingSolver(Solver):
         unassigned_vars = [ (len(problem.variables[v]), v) for v in u ]
 
         if len(unassigned_vars) == 0:
-            print "Backtrackings: "
-            print self.backtracks
+            print problem.backtracks
             return problem.variables
 
         # order unassigned variables
@@ -217,7 +213,7 @@ class BacktrackingSolver(Solver):
         st = time.time()
         problem.variables = deepcopy(copy_variables)
         rt = time.time() - st
-        self.backtracks += 1
+        problem.backtracks += 1
         return False
 
     def check_assignment(self, problem, assigned):
@@ -312,7 +308,7 @@ class AllDifferentConstraint(object):
             for var2 in constrained_variables:
                 if var2 != var1:
                     self._constrained_variables[var1].append(var2)
-        #pprint(self._constrained_variables)
+        #pprint(self._constrained_variables)
 
     def check(self, problem, updated_var):
         """ check if constraint is still satisfied, after an update. 
