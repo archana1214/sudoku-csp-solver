@@ -178,6 +178,42 @@ class BacktrackingSolver(Solver):
         solution = self.backtrack(problem)
         return solution.variables, solution.getStatistics()
 
+    
+    def recursiveBacktracking(problem):
+        """
+        boolean solve(Node n) {
+            if n is a leaf node {
+                if the leaf is a goal node, return true
+                else return false
+            } else {
+                for each child c of n {
+                    if solve(c) succeeds, return true
+                }
+                return false
+            }
+        }
+        """
+        # find unassigned variables
+        u = (v for v in problem.variables if len(problem.variables[v]) > 1 )
+        unassigned_vars = [ (len(problem.variables[v]), v) for v in u ]
+
+        if len(unassigned_vars) == 0:
+            return problem
+            
+        else:
+            
+
+
+
+
+
+
+
+
+
+
+
+
     def backtrack(self, problem):
 
         # find unassigned variables
