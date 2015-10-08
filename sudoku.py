@@ -6,6 +6,9 @@
 from constraintproblem import *
 import sys
 from pprint import pprint
+import os
+import csv
+from datetime import datetime
 
 SUDOKUS = []
 SUDOKU_SIZE = (9,9)
@@ -79,10 +82,6 @@ def rewrite2array(solution):
             sudoku_array[i].append(0)
     for variable, assignment in solution.iteritems():
         if len(assignment) == 1:
-            #<<<<<<< HEAD
-            #print variable[0], variable[1]
-            #=======
-            #>>>>>>> 1993cac983cbff69d5093dde8943ee82d1d6877d
             sudoku_array[variable[0] -1][variable[1] - 1] = assignment[0]
     return sudoku_array
 
@@ -90,7 +89,6 @@ def rewrite2output(solution_array):
     """ rewrite a 2dimensional array to long string, just like the input.
 
     """
-
     outputstring = ""
     for i in range(SUDOKU_SIZE[0]):
         for j in range(SUDOKU_SIZE[1]):
@@ -105,18 +103,35 @@ def output_data(outputfile, output):
                 f.write(sudoku)
                 f.write("\n")
 
-def print_statistics(output_stats):
-    runtime = 0
-    avg_backtracks = 0
-    avg_splits = 0
-    for problem_stat in output_stats:
-        runtime += getattr(problem_stat,'runtime')        
-        avg_backtracks += getattr(problem_stat,'backtracks')        
-        avg_splits += getattr(problem_stat,'splits')    
-    n_Sudokus= len(output_stats) 
-    avg_backtracks *= 1/n_Sudokus
-    avg_splits *= 1/n_Sudokus
-    print "runtime: %s, avg_backtracks: %s, avg_splits: %s" %(runtime, avg_backtracks, avg_splits)
+
+def print_statistics(output_stats, forward_checking = False, minimal_remaining_values = False):
+    os.chdir("statistics/")
+
+    dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    filename = ("stats-" + str(dt) + ".csv")
+    filename = filename.replace(':','')
+
+    with open(filename, 'wb') as csvfile:
+
+        spamwriter = csv.writer(csvfile, delimiter=',',
+                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        runtime = 0
+        avg_backtracks = 0
+        avg_splits = 0
+        for problem_stat in output_stats:
+            runtime += getattr(problem_stat,'runtime')      
+            avg_backtracks += getattr(problem_stat,'backtracks')        
+            avg_splits += getattr(problem_stat,'splits')    
+        n_Sudokus= len(output_stats)
+        avg_backtracks = avg_backtracks/n_Sudokus
+        avg_splits = avg_splits/n_Sudokus
+        spamwriter.writerow(['Heuristics:', 'forward_checking = ' + str(forward_checking), 'minimal_remaining_values = ' + str(minimal_remaining_values)])
+
+        spamwriter.writerow(['--------------------------'])
+        spamwriter.writerow(['total runtime', round(runtime,3)])
+        spamwriter.writerow(['average backtracks:', avg_backtracks])
+        spamwriter.writerow(['average splits:', avg_splits])
+    os.chdir("../")
 
 def main(arg, forward_checking = False, minimal_remaining_values=False):
     print_to_file = False
@@ -139,28 +154,27 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
     # output is OR outputted to the screen, or to the outputfile. This is a buffer where we save all solutions as a string of 81 characters for 1 sudoku.
     output = []
     output_stats = []
-    for sudoku in SUDOKUS:
-        if sudoku == SUDOKUS[0]:
-            problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
 
-            problem = variable_domains(problem,sudoku)
-            # Add standard sudoku constraints
-            problem = sudoku_constraints(problem)
-            # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
-            solution = problem.getSolution()
-            statistics = problem.getStatistics()
-            solution_array = rewrite2array(solution)
-            if not print_to_file:
-                pprint(solution_array)
-            else:
-                output.append(rewrite2output(solution_array))
-            output_stats.append(statistics)
-    # EXTRA PRINT        
-    pprint(solution_array)
-    print_statistics(output_stats)
+    #for sudoku in SUDOKUS[0:1]:
+    for sudoku in SUDOKUS[0:100]:
+        problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
+
+        problem = variable_domains(problem,sudoku)
+        # Add standard sudoku constraints
+        problem = sudoku_constraints(problem)
+        # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
+        solution, statistics = problem.getSolution()
+        print statistics
+        solution_array = rewrite2array(solution)
+        if not print_to_file:
+            pprint(solution_array)
+        else:
+            output.append(rewrite2output(solution_array))
+        output_stats.append(statistics)
     #if an outputfile is specified
     if outputfile:
         output_data(outputfile, output)
+    print_statistics(output_stats, forward_checking, minimal_remaining_values)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -171,7 +185,5 @@ if __name__ == '__main__':
     else:
         main(sys.argv,forward_checking = True, minimal_remaining_values=True)
         main(sys.argv,forward_checking = True, minimal_remaining_values=False)
-        main(sys.argv,forward_checking = False, minimal_remaining_values=True)
-        main(sys.argv,forward_checking = False, minimal_remaining_values=False)
 
 
