@@ -154,7 +154,7 @@ class BacktrackingSolver(Solver):
 
     def __init__(self, forward_checking = True, minimal_remaining_values = True):
         self.forward_checking = forward_checking
-        self.mrv = minimal_remaining_values 
+        self.mrv = minimal_remaining_values
         self.backtracks = 0
 
 
@@ -256,7 +256,7 @@ class BacktrackingSolver(Solver):
             # Find constraints for assigned var
             for constraint in problem.var_constr_dict[var1]:
                 # Find variables that assigned var is constrained by
-                for var2 in constraint._constrained_variables:
+                for var2 in constraint._constrained_variables[var1]:
                     # If variables that assigned var is constrained by
                     # have its assigned value in domain, remove it
                     if len(problem.variables[var2]) != 1:

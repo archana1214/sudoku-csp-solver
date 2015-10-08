@@ -1,5 +1,0 @@
-Heuristics:,forward_checking = True,minimal_remaining_values = True
---------------------------
-total runtime,542.186
-average backtracks:,995
-average splits:,1006

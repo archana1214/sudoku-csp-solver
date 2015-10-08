@@ -8,10 +8,66 @@ import sys
 from pprint import pprint
 import os
 import csv
+from random import shuffle
 from datetime import datetime
+from collections import OrderedDict
 
+CHECK_X_SUDOKUS = 100
 SUDOKUS = []
-SUDOKU_SIZE = (9,9)
+SUDOKUS_LINES = []
+SUDOKU_SIZE = (9, 9)
+N_SUDOKUS = 0
+
+class Sudoku(object):
+
+    def __init__(self, sudoku):
+        self.sudoku = sudoku
+        self.string_representation = rewrite2output(sudoku)
+        self.givens = len(self.string_representation) - self.string_representation.count("0")
+        self.freq_d = self.calculate_frequency(sudoku)
+        self.variance = self.variance(self.freq_d)
+        self.runtime = 0
+        self.backtracks = 0
+        self.splits = 0
+        self.solved = False
+
+    def calculate_frequency(self, grid):
+        """ calculates the freqency distribution of a distribution of numbers in a sudoku, i.e. the number of occurences, of the number of occurences.
+            returns a dictionary with the frequency distribution.
+        """ 
+        d = {1: 0, 2: 0, 3: 0,
+             4: 0, 5: 0, 6: 0, 
+             7: 0, 8: 0, 9: 0}
+        # first, we calculate the frequency of every number that is not 0
+        for row in grid:
+            for digit in row:
+                if d.has_key(digit):
+                    d[digit] += 1
+
+        # because we dont care about which number occurs how many times, we calculate the frequency of the frequency. We take this distribution to be the distinguisable attribute of a sudoku, where the total number of given numbers is the same between the sudoku's we compare.
+        freq_d = {}
+        for key,value in d.iteritems():
+            if value in freq_d.keys():
+                freq_d[value] += 1
+            else: 
+                freq_d[value] = 1
+        return freq_d
+
+    def variance(self, distribution):
+        """
+            calculates the variance of a dictionary, containing the distribution
+        """ 
+        freq_sum = 0
+        n = 0
+        d = 0
+        for key,value in distribution.iteritems():
+            freq_sum += key * value
+            n += value
+        mean = float(freq_sum) / n
+        for key,value in distribution.iteritems():
+            d += value * (key - mean)**2
+        variance = float(d) / n
+        return variance
 
 def read_sudokus(filename):
     """import all sudoku's from file given by user"""
@@ -30,7 +86,8 @@ def read_sudokus(filename):
                     if (len(row) == SUDOKU_SIZE[1]):
                         sudoku.append(row)
                         row = []
-                SUDOKUS.append(sudoku)
+                sud = Sudoku(sudoku)
+                SUDOKUS.append(sud)
             f.close()
     except IOError as e:
         print "I/O error({0}): {1}".format(e.errno, e.strerror)
@@ -104,12 +161,17 @@ def output_data(outputfile, output):
                 f.write("\n")
 
 
-def print_statistics(output_stats, forward_checking = False, minimal_remaining_values = False):
+def print_statistics(forward_checking = False, minimal_remaining_values = False):
     os.chdir("statistics/")
 
-    dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    filename = ("stats-" + str(dt) + ".csv")
-    filename = filename.replace(':','')
+    dt = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    filename = str(CHECK_X_SUDOKUS) + "-"
+
+    if forward_checking:
+        filename += "fc-"
+    if minimal_remaining_values:
+        filename += "mrv-"
+    filename += str(dt) + ".csv"
 
     with open(filename, 'wb') as csvfile:
 
@@ -118,22 +180,97 @@ def print_statistics(output_stats, forward_checking = False, minimal_remaining_v
         runtime = 0
         avg_backtracks = 0
         avg_splits = 0
-        for problem_stat in output_stats:
-            runtime += getattr(problem_stat,'runtime')      
-            avg_backtracks += getattr(problem_stat,'backtracks')        
-            avg_splits += getattr(problem_stat,'splits')    
-        n_Sudokus= len(output_stats)
-        avg_backtracks = avg_backtracks/n_Sudokus
-        avg_splits = avg_splits/n_Sudokus
+        for sudoku_obj in SUDOKUS:
+            runtime += sudoku_obj.runtime      
+            avg_backtracks += sudoku_obj.backtracks     
+            avg_splits += sudoku_obj.splits 
+        avg_backtracks = avg_backtracks/N_SUDOKUS
+        avg_splits = avg_splits/N_SUDOKUS
         spamwriter.writerow(['Heuristics:', 'forward_checking = ' + str(forward_checking), 'minimal_remaining_values = ' + str(minimal_remaining_values)])
 
         spamwriter.writerow(['--------------------------'])
+        spamwriter.writerow(['Number of sudokus', N_SUDOKUS])
         spamwriter.writerow(['total runtime', round(runtime,3)])
         spamwriter.writerow(['average backtracks:', avg_backtracks])
         spamwriter.writerow(['average splits:', avg_splits])
+        spamwriter.writerow(['--------------------------'])
+
+        # NOW CALCULATE statistics for givens
+        givens_dict = {}
+        givens_solved_dict = {}
+        for sudoku_obj in SUDOKUS:
+            if sudoku_obj.givens in givens_dict.keys():
+                givens_dict[sudoku_obj.givens].append(sudoku_obj)
+            else:
+                givens_dict[sudoku_obj.givens] = [sudoku_obj]
+
+        givens_solved_dict = dict.fromkeys(givens_dict.keys(),0)
+        for sudoku_obj in SUDOKUS:
+            if sudoku_obj.solved:
+                    givens_solved_dict[sudoku_obj.givens] += 1
+
+        spamwriter.writerow(['givens', 'number of occurences', 'average runtime', 'average backtracks', 'average splits'])
+        for givens, sudoku_objs in givens_dict.iteritems():
+            avg_runtime = 0
+            avg_backtracks = 0
+            avg_splits = 0
+            for sudoku_obj in sudoku_objs:
+                avg_runtime += sudoku_obj.runtime
+                avg_backtracks += sudoku_obj.backtracks
+                avg_splits += sudoku_obj.splits
+            n_suds = givens_solved_dict[givens]
+            if n_suds > 0:
+                avg_runtime = avg_runtime/n_suds
+                avg_backtracks = avg_backtracks/n_suds
+                avg_splits = avg_splits/n_suds
+            else:
+                avg_runtime = 0
+                avg_backtracks = 0
+                avg_splits = 0
+            spamwriter.writerow([givens, givens_solved_dict[givens], avg_runtime, avg_backtracks, avg_splits])
+        spamwriter.writerow(['--------------------------'])
+
+        # Now we calculate statistics for variances
+        variance_dict = {}
+        variance_solved_dict = {}
+        for sudoku_obj in SUDOKUS:
+            if sudoku_obj.variance in variance_dict.keys():
+                variance_dict[sudoku_obj.variance].append(sudoku_obj)
+            else:
+                variance_dict[sudoku_obj.variance] = [sudoku_obj]
+
+        variance_solved_dict = dict.fromkeys(variance_dict.keys(),0)
+        for sudoku_obj in SUDOKUS:
+            if sudoku_obj.solved:
+                    variance_solved_dict[sudoku_obj.variance] += 1
+
+        spamwriter.writerow(['variances','number of occurences', 'average runtime', 'average backtracks','average splits'])
+
+        od = OrderedDict(sorted(variance_dict.items()))
+        for variance, sudoku_objs in od.iteritems():
+            avg_runtime = 0
+            avg_backtracks = 0
+            avg_splits = 0
+            for sudoku_obj in sudoku_objs:
+                avg_runtime += sudoku_obj.runtime
+                avg_backtracks += sudoku_obj.backtracks   
+                avg_splits += sudoku_obj.splits
+            n_suds = variance_solved_dict[variance]
+            if n_suds > 0:
+                avg_runtime = avg_runtime/n_suds
+                avg_backtracks = avg_backtracks/n_suds
+                avg_splits = avg_splits/n_suds
+            else:
+                avg_runtime = 0
+                avg_backtracks = 0
+                avg_splits = 0
+            spamwriter.writerow([variance, variance_solved_dict[variance], avg_runtime, avg_backtracks, avg_splits])
+        spamwriter.writerow(['--------------------------'])
     os.chdir("../")
 
 def main(arg, forward_checking = False, minimal_remaining_values=False):
+    global N_SUDOKUS
+    N_SUDOKUS = 0
     print_to_file = False
     outputfile = ""
     forward_checking = True
@@ -154,27 +291,32 @@ def main(arg, forward_checking = False, minimal_remaining_values=False):
     # output is OR outputted to the screen, or to the outputfile. This is a buffer where we save all solutions as a string of 81 characters for 1 sudoku.
     output = []
     output_stats = []
-
-    #for sudoku in SUDOKUS[0:1]:
-    for sudoku in SUDOKUS[0:100]:
-        problem = Problem(forward_checking = forward_checking, minimal_remaining_values = minimal_remaining_values)
+    shuffle(SUDOKUS)
+    for sudoku_obj in SUDOKUS[:CHECK_X_SUDOKUS]:
+        N_SUDOKUS += 1
+        print "solving sudoku " + str(N_SUDOKUS)
+        sudoku = sudoku_obj.sudoku
+        problem = Problem(forward_checking=forward_checking, minimal_remaining_values=minimal_remaining_values)
 
         problem = variable_domains(problem,sudoku)
         # Add standard sudoku constraints
         problem = sudoku_constraints(problem)
         # Get solution (this is of the form {(1,1): [4], (1,2): [5] , .... (9,9) : [1]})
         solution, statistics = problem.getSolution()
+        sudoku_obj.solved = True
         print statistics
         solution_array = rewrite2array(solution)
         if not print_to_file:
             pprint(solution_array)
         else:
             output.append(rewrite2output(solution_array))
-        output_stats.append(statistics)
+        sudoku_obj.runtime = getattr(statistics,'runtime')
+        sudoku_obj.backtracks = getattr(statistics,'backtracks')
+        sudoku_obj.splits = getattr(statistics,'splits')
     #if an outputfile is specified
     if outputfile:
         output_data(outputfile, output)
-    print_statistics(output_stats, forward_checking, minimal_remaining_values)
+    print_statistics(forward_checking, minimal_remaining_values)
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -183,7 +325,7 @@ if __name__ == '__main__':
         print "if no outputfile is given, the solutions will be outputted on the screen"
         print "Example: python sudoku.py \"input.txt\" \"output.txt\" "
     else:
-        main(sys.argv,forward_checking = True, minimal_remaining_values=True)
-        main(sys.argv,forward_checking = True, minimal_remaining_values=False)
+        main(sys.argv,forward_checking=True, minimal_remaining_values=True)
+        #main(sys.argv,forward_checking=True, minimal_remaining_values=False)
 
 
